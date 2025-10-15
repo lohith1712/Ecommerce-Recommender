@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>E-commerce RAG Recommender</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="bg-blue-50 p-10">
+  <h1 class="text-3xl md:text-4xl font-extrabold mb-2 text-gray-800 tracking-tight">🛒 Product Recommendations</h1>
+  <p class="text-gray-600 mb-6">Discover items tailored for you with clear, readable explanations.</p>
+
+  <div class="mb-8 bg-white/90 backdrop-blur p-4 rounded-xl shadow ring-1 ring-black/5 inline-flex items-center gap-3">
+    <label class="text-sm font-medium text-gray-700">User ID</label>
+    <input type="number" id="userId" value="101" class="border border-gray-300 p-2 rounded w-24 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+    <button onclick="getRecommendations()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">Get Recommendations</button>
+  </div>
+
+  <div id="recommendations" class="grid gap-6 md:grid-cols-2"></div>
+
+  <script>
+    async function getRecommendations() {
+      const userId = document.getElementById("userId").value;
+      const res = await fetch(`http://localhost:5000/recommend/${userId}`);
+      const data = await res.json();
+
+      const container = document.getElementById("recommendations");
+      container.innerHTML = "";
+
+      // Split explanations cleanly
+      const explanationParts = data.llm_explanation
+        .split(/\n{2,}/)
+        .filter(l => l.trim());
+
+      data.recommended_products.forEach((p, idx) => {
+        const explanation = explanationParts[idx] || "No explanation provided.";
+        const cleanExplanation = marked.parse(explanation);
+
+        // Create product card
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow duration-300 ring-1 ring-black/5";
+
+        card.innerHTML = `
+          <div class="p-6">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-800 mb-1">${p.title}</h2>
+              <p class="text-sm text-gray-500 mb-3">${p.category}</p>
+              <p class="text-lg font-semibold text-blue-600 mb-4">Price: $${p.price}</p>
+              <div class="prose prose-slate max-w-none">${cleanExplanation}</div>
+            </div>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+  </script>
+</body>
+</html>
